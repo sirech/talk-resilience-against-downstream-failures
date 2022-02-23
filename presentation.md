@@ -11,6 +11,8 @@
 <h3 class="main">
 Wayfair
 </h2>
+
+<span class="bottom-right"><a href="https://hceris.com/">hceris.com/<a></span>
  
 ???
 
@@ -28,7 +30,7 @@ Resilience Operators
 </h3>
 
 <h3 class="fragment fade-up">
-Fallbacks
+Fallback Cache
 </h3>
 
 <h3 class="fragment fade-up">
@@ -110,7 +112,7 @@ Taking It to the Next Level
 ### DevoxxUK 2021
 
 <span class="bottom-right">
-www.youtube.com/watch?v=X59Sfaey5N4
+<a href="https://www.youtube.com/watch?v=X59Sfaey5N4">www.youtube.com/watch?v=X59Sfaey5N4</a>
 </span>
 
 ---
@@ -144,7 +146,7 @@ www.youtube.com/watch?v=X59Sfaey5N4
 ## Resilience4j
 
 <span class="bottom-right">
-resilience4j.readme.io/
+<a href="https://resilience4j.readme.io/">resilience4j.readme.io/</a>
 </span>
 
 ---
@@ -170,7 +172,7 @@ private Mono<String> fallback(String param1, RuntimeException e) {
 
 ---
 
-## Annotations end up leading to duplication
+## Alternative to annotations
 ### Reusable abstraction ➡️  _SyncFallbackCache_
 
 ---
@@ -254,7 +256,7 @@ private Collection<SupplierUserPermission> getPermissions(
 
 <!-- .slide: data-background-color="var(--r-main-color)"  -->
 
-# Fallbacks
+# Fallback Cache
 
 ---
 
@@ -269,7 +271,7 @@ private Collection<SupplierUserPermission> getPermissions(
 ## Caffeine
 
 <span class="bottom-right">
-github.com/ben-manes/caffeine
+<a href="https://github.com/ben-manes/caffeine">github.com/ben-manes/caffeine</a>
 </span>
 
 ---
@@ -327,7 +329,7 @@ protected T getFromCacheOrThrow(
 ---
 
 ## Does the caching work?
-### Hit rate %
+### Hit Rate %
 
 ---
 
@@ -387,12 +389,12 @@ public class CachedNavigation implements Cacheable<List<LegacyNavMenuItem>> {
 ## Side note
 ### _Testcontainers_ is a life saver!
 
-<span class="bottom-right">https://www.testcontainers.org/</span>
+<span class="bottom-right"><a href="https://www.testcontainers.org/">www.testcontainers.org/</a></span>
 
 ---
 
 ## Did it work this time?
-### Hit rate %
+### Hit Rate %
 
 ---
 
