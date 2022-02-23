@@ -32,7 +32,7 @@ Fallbacks
 </h3>
 
 <h3 class="fragment fade-up">
-The Next Level
+Taking It to the Next Level
 </h3>
 
 ???
@@ -90,7 +90,11 @@ The Next Level
 
 <!-- .slide: data-background-color="var(--r-main-color)"  -->
 
-# Facing Issues
+# Issues 💣💥🔥
+
+---
+
+## Reliant on legacy monolith
 
 ---
 
@@ -104,13 +108,312 @@ The Next Level
 
 ## Humane On-Call
 ### DevoxxUK 2021
-### www.youtube.com/watch?v=X59Sfaey5N4
+
+<span class="bottom-right">
+www.youtube.com/watch?v=X59Sfaey5N4
+</span>
 
 ---
 
 <!-- .slide: data-background-color="var(--r-main-color)"  -->
 
-# Resilience
+# Resilience Operators
 
 ---
 
+## Circuit breaker
+
+---
+
+<!-- .slide: data-background-image="images/circuitbreaker.png" data-background-size="auto 90%" -->
+
+---
+
+## Retry
+
+---
+
+<!-- .slide: data-background-image="images/retry.png" data-background-size="60% auto" -->
+
+---
+
+## No need to build from scratch
+
+---
+
+## Resilience4j
+
+<span class="bottom-right">
+resilience4j.readme.io/
+</span>
+
+---
+
+```java
+@CircuitBreaker(name = BACKEND, fallbackMethod = "fallback")
+@RateLimiter(name = BACKEND)
+@Bulkhead(name = BACKEND)
+@Retry(name = BACKEND, fallbackMethod = "fallback")
+@TimeLimiter(name = BACKEND)
+public Mono<String> method(String param1) {
+    return Mono.error(new NumberFormatException());
+}
+
+private Mono<String> fallback(String param1, IllegalArgumentException e) {
+    return Mono.just("test");
+}
+
+private Mono<String> fallback(String param1, RuntimeException e) {
+    return Mono.just("test");
+}
+```
+
+---
+
+## Annotations end up leading to duplication
+### Reusable abstraction ➡️  _SyncFallbackCache_
+
+---
+
+### Creating an operator
+
+```java
+Retry getRetry(String name, MeterRegistry meterRegistry) {
+  RetryRegistry retryRegistry = RetryRegistry.ofDefaults();
+  TaggedRetryMetrics.ofRetryRegistry(retryRegistry).bindTo(meterRegistry);
+  return retryRegistry.retry(name);
+}
+
+CircuitBreaker getCircuitBreaker(String name, MeterRegistry meterRegistry) {
+  CircuitBreakerRegistry circuitBreakerRegistry = CircuitBreakerRegistry
+      .ofDefaults();
+  TaggedCircuitBreakerMetrics
+      .ofCircuitBreakerRegistry(circuitBreakerRegistry).bindTo(meterRegistry);
+  return circuitBreakerRegistry.circuitBreaker(name);
+}
+```
+
+---
+
+```java
+/**
+ * Fetches data synchronously
+ *
+ * @param key           the key that identifies the object
+ * @param valueSupplier a supplier to perform the call
+ * @return the data returned from the service, or from the cache
+ * @throws io.github.resilience4j.circuitbreaker.CallNotPermittedException 
+ * @throws RuntimeException                                                
+ */
+public T get(String key, Supplier<R> valueSupplier) {
+  Supplier<T> decoratedSupplier = Decorators
+      .ofSupplier(() -> getAndCache(key, valueSupplier))
+      .withRetry(retry)
+      .withCircuitBreaker(cb).decorate();
+
+  return Try.ofSupplier(decoratedSupplier)
+      .recover(RuntimeException.class, 
+          (exception) -> getFromCacheOrThrow(key, exception))
+      .get();
+}
+```
+
+---
+
+## High-level usage
+
+```java
+private SyncFallbackCache<Collection<SupplierUserPermission>> permissions;
+
+private Collection<SupplierUserPermission> getPermissions(
+    String extranetUserId, 
+    int supplierId) {
+  return permissions.get(
+      () -> String.format("exuId:%s;suId:%s", extranetUserId, supplierId),
+      () -> client.getUserPermissions(extranetUserId, supplierId)
+          .getData()
+          .getSupplierUserMyInformation()
+          .getPermissions()
+  );
+}
+```
+---
+
+## What about _Reactor_?
+### Support for _Mono_ ➡️  _AsyncFallbackCache_
+
+---
+
+## Let's not forget monitoring
+
+---
+
+<!-- .slide: data-background-image="images/resilience-monitoring.png" data-background-size="90% auto" -->
+
+---
+
+<!-- .slide: data-background-color="var(--r-main-color)"  -->
+
+# Fallbacks
+
+---
+
+## Graceful degradation
+
+---
+
+<!-- .slide: data-background-image="images/degradation.png" data-background-size="auto 80%" -->
+
+---
+
+## Caffeine
+
+<span class="bottom-right">
+github.com/ben-manes/caffeine
+</span>
+
+---
+
+```java
+static <R> Cache<String, R> cache(String name, MeterRegistry meterRegistry) {
+  Cache<String, R> cache = Caffeine.newBuilder()
+      .recordStats()
+      .expireAfterWrite(Duration.ofHours(24))
+      .maximumSize(6000)
+      .build();
+
+  CaffeineCacheMetrics.monitor(meterRegistry, cache, name);
+  return cache;
+}
+```
+
+---
+
+```java
+protected T getAndCache(Supplier<String> keySupplier, Supplier<T> valueSupplier) {
+  var result = valueSupplier.get();
+  if (result != null) {
+    cache.put(keySupplier.get(), result);
+  }
+  return result;
+}
+```
+
+---
+
+```java
+protected T getFromCacheOrThrow(
+    Supplier<String> keySupplier, 
+    RuntimeException exception) {
+  var value = cache.getIfPresent(keySupplier.get());
+
+  if (value == null) {
+    log.error(String.format(
+        "FallbackCache[%s] got an error without a cached value", 
+        cb.getName()), 
+        exception);
+    throw exception;
+  }
+
+  log.info(String.format(
+      "FallbackCache[%s] got cached value", 
+      cb.getName()), 
+      value);
+
+  return value;
+}
+```
+
+---
+
+## Does the caching work?
+### Hit rate %
+
+---
+
+<!-- .slide: data-background-image="images/bad-hitrate.png" data-background-size="90% auto" -->
+
+---
+
+<!-- .slide: data-background-color="var(--r-main-color)"  -->
+
+# Taking It to the Next Level
+
+---
+
+## Ephemeral caching won't cut it
+
+---
+
+## Aerospike
+
+<span class="bottom-right"><a href="https://www.aerospike.com">aerospike.com/</a></span>
+
+---
+
+## Spring Data
+
+```java
+public interface NavigationRepository extends 
+    AerospikeRepository<CachedNavigation, String> {
+}
+```
+
+---
+
+## Serializable models
+
+```java
+@Value
+@Document(collection = "navigation_CachedNavigationMenu")
+public class CachedNavigation implements Cacheable<List<LegacyNavMenuItem>> {
+  @Id
+  String id;
+  List<LegacyNavMenuItem> navigation;
+
+  @Override
+  public List<LegacyNavMenuItem> data() {
+    return navigation;
+  }
+}
+```
+
+---
+
+<!-- .slide: data-background-image="images/aerospike-cli.png" data-background-size="90% auto" -->
+
+---
+
+## Side note
+### _Testcontainers_ is a life saver!
+
+<span class="bottom-right">https://www.testcontainers.org/</span>
+
+---
+
+## Did it work this time?
+### Hit rate %
+
+---
+
+<!-- .slide: data-background-image="images/good-hitrate.png" data-background-size="90% auto" -->
+
+---
+
+<!-- .slide: data-background-color="var(--r-main-color)"  -->
+
+# Let's Finish With Some Numbers
+
+---
+
+## Error Rate %
+
+<h3><span class="danger fragment fade-up">2.2%</span><span class="fragment fade-up"> ➡️ </span><span class="fragment fade-up success">0.03%</span></h3>
+
+---
+
+![slo](images/slo.png)
+
+<span class="bottom-right"><a href="https://hceris.com/multiwindow-multi-burn-rate-alerts-in-datadog/">hceris.com/multiwindow-multi-burn-rate-alerts-in-datadog/<a></span>
+
+---
