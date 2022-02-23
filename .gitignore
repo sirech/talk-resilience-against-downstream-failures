@@ -1,0 +1,16 @@
+.gradle/
+.tmp/
+
+build/
+pdf/
+
+out/
+tmp/**
+dist/theme
+dist/*.map
+
+log/
+
+node_modules/
+.sass-cache
+

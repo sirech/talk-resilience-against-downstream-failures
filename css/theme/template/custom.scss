@@ -1,0 +1,18 @@
+.bottom-right {
+  position: absolute;
+  right: 32px;
+  bottom: -128px;
+}
+
+.right {
+  float: right;
+}
+
+.main {
+	color: var(--r-main-color) !important;
+}
+
+.danger {
+	color: red !important;
+  text-transform: uppercase !important;
+}
