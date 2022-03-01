@@ -84,9 +84,9 @@ Taking It to the Next Level
 
 ???
 
-- let's say, a navigation bar
+- among all these services, my team owns the navigation bar
 - it's present in almost every page
-- in a decoupled application architecture, you have to make sure that every individual app renders it
+- it's a surprisingly complex piece, with a FE and a BE that integrates mutiple sources of data to determine permissions to show nav items
 
 ---
 
@@ -101,6 +101,10 @@ Taking It to the Next Level
 ---
 
 <!-- .slide: data-background-image="images/errors.png" data-background-size="auto 90%" -->
+
+???
+
+- long intervals of elevated error rates are pretty typical
 
 ---
 
@@ -120,6 +124,11 @@ Taking It to the Next Level
 <!-- .slide: data-background-color="var(--r-main-color)"  -->
 
 # Resilience Operators
+
+???
+
+- 14/50
+- this part is about being a good citizen in a services ecosystem
 
 ---
 
@@ -148,6 +157,10 @@ Taking It to the Next Level
 <span class="bottom-right">
 <a href="https://resilience4j.readme.io/">resilience4j.readme.io/</a>
 </span>
+
+???
+
+- the successor of hystrix
 
 ---
 
@@ -179,7 +192,7 @@ private Mono<String> fallback(String param1, RuntimeException e) {
 
 ### Creating an operator
 
-```java
+```java [|2|3]
 Retry getRetry(String name, MeterRegistry meterRegistry) {
   RetryRegistry retryRegistry = RetryRegistry.ofDefaults();
   TaggedRetryMetrics.ofRetryRegistry(retryRegistry).bindTo(meterRegistry);
@@ -197,7 +210,7 @@ CircuitBreaker getCircuitBreaker(String name, MeterRegistry meterRegistry) {
 
 ---
 
-```java
+```java [|11-12|13-14|17-18]
 /**
  * Fetches data synchronously
  *
@@ -224,7 +237,7 @@ public T get(String key, Supplier<R> valueSupplier) {
 
 ## High-level usage
 
-```java
+```java [|1|8-11]
 private SyncFallbackCache<Collection<SupplierUserPermission>> permissions;
 
 private Collection<SupplierUserPermission> getPermissions(
@@ -258,6 +271,10 @@ private Collection<SupplierUserPermission> getPermissions(
 
 # Fallback Cache
 
+???
+
+- 29/50
+
 ---
 
 ## Graceful degradation
@@ -276,7 +293,7 @@ private Collection<SupplierUserPermission> getPermissions(
 
 ---
 
-```java
+```java [|2-6|8]
 static <R> Cache<String, R> cache(String name, MeterRegistry meterRegistry) {
   Cache<String, R> cache = Caffeine.newBuilder()
       .recordStats()
@@ -341,6 +358,10 @@ protected T getFromCacheOrThrow(
 
 # Taking It to the Next Level
 
+???
+
+- 38/50
+
 ---
 
 ## Ephemeral caching won't cut it
@@ -390,6 +411,10 @@ public class CachedNavigation implements Cacheable<List<LegacyNavMenuItem>> {
 ### _Testcontainers_ is a life saver!
 
 <span class="bottom-right"><a href="https://www.testcontainers.org/">www.testcontainers.org/</a></span>
+
+???
+
+- I would go into this more if I had more time. We used the opportunity to leverage testcontainers to set up integration tests with a local Aerospike instance. Great stuff.
 
 ---
 
